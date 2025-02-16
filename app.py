@@ -87,16 +87,16 @@ def main():
     # ---------------------------------------------------------------
 
     default_main = "1,3,5,9,11,13,15,16,21,23,24,25,29,31,32,33,35,37,39,41,45,47,48,52,57,65,67,68,82"
-    main_str = st.text_area("Main list", default_main, height=60)
+    main_str = st.text_area("Main list", default_main, height=80)
 
     default_g = "3,5,6,11,13,15,16,24,31,32,35"
-    g_str = st.text_area("G list", default_g, height=60)
+    g_str = st.text_area("G list", default_g, height=80)
 
     default_r = "4,10,12,14,15,16,20,22,23,24,28,32,33,34,41"
-    r_str = st.text_area("R list", default_r, height=60)
+    r_str = st.text_area("R list", default_r, height=80)
 
     default_c_list = "12,14,22,32"
-    c_list_str = st.text_area("C_list", default_c_list, height=60)
+    c_list_str = st.text_area("C_list", default_c_list, height=80)
 
     default_nwim = "2,4,9,10,12,14,19,20,26,27,28,34,36,42,43,44,46,49,50,53,54,56,58,59,60,62,64,66,69,70,72,73,74,76,78,79,80,21,23,26,28,29,33,39,22,4,10,12,22,28,34,4,9,10,14,19,20,28,34,44,9,10,14,19,20,22,28,30,34,40,44,50,53,54,56,59,60,70,80"
     nwim_str = st.text_area("NWIM list (not_wanted_in_sum)", default_nwim, height=100)
