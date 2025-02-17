@@ -40,6 +40,25 @@ def is_valid_triple(A, B, C, counts, strict_switch, nwis):
             return False
     return True
 
+def is_valid_double(A, B, counts, strict_switch, nwis):
+    """
+    Check if the double (A, B) can be formed with available counts.
+    If strict_switch is True, apply extra checks involving nwis.
+    """
+    from collections import Counter
+    temp_counts = Counter([A, B])
+    
+    # If strict_switch is on, apply extra NWIS logic
+    if strict_switch:
+        if (B - 1) in nwis:
+            return False
+
+    # Check we have enough occurrences for each number
+    for num, req in temp_counts.items():
+        if counts.get(num, 0) < req:
+            return False
+    return True
+
 def compute_bins(triple, Main, G, R, C_list):
     """
     Calculate how many numbers in the triple come from
@@ -69,23 +88,60 @@ def compute_bins(triple, Main, G, R, C_list):
     return bins
 
 def main():
-    st.title("Excel Combinations Generator")
+    st.title("Number Combinations Generator")
 
     # ---------------------------------------------------------------
     # 1) CONFIGURATION FLAGS - user selectable
     # ---------------------------------------------------------------
-    save_valid = st.checkbox("Save valid combinations (valid_combinations_final.xlsx)", value=True)
-    save_no_color = st.checkbox("Save no-color version (visualized_no_color.xlsx)", value=True)
-    save_with_color = st.checkbox("Save color version (visualized_with_color.xlsx)", value=True)
-    strict_switch = st.checkbox("Enable strict_switch (NWIS check in intermediate steps)", value=False)
+
+    # Alternative to segmented_control
+    # Bold and large title with no spacing before radio buttons
+    st.write("### **Select One of the Combinations Below:**")  # This avoids extra spacing
+
+    # Radio button with hidden label to remove extra space
+    method_selections = st.radio("Options:", ["Combination 1: Triples", "Combination 2: Doubles"], label_visibility="collapsed")
+
+    # st.write(f"You selected: {method_selection}")
+
+
+    method_selection = ''
+    if method_selections == "Combination 1: Triples":
+        # st.write("You selected Combination 1: Triples")
+        st.write("##### You selected Combination 1: Triples")
+        st.write("""
+        Three numbers (B,C,SUM) selected from Main,G,R,C with conditions
+        - SUM = C + 5
+        - Intermediate Values of B and C are greater than 0
+        """)
+
+        method_selection = 'triple'
+
+    elif method_selections == "Combination 2: Doubles":
+        st.write("##### You selected Combination 2: Doubles")
+        st.write("""
+        Two numbers (B,SUM) selected from Main,G,R,C with conditions
+        - SUM = B + 4
+        - Intermediate Value of B is greater than 0
+        """)
+        method_selection = 'double'
+
+
 
     st.markdown("---")
-    st.subheader("Input Lists")
+    st.subheader("Select Files to save below:")
+    save_valid = st.checkbox("Save valid combinations (valid_combinations_final.xlsx)", value=True)
+    # save_no_color = st.checkbox("Save no-color version (visualized_no_color.xlsx)", value=True)
+    save_no_color = False
+    save_with_color = st.checkbox("Save color version (visualized_with_color.xlsx)", value=True)
+
+    st.markdown("---")
+    st.subheader("Input Configuration")
 
     # ---------------------------------------------------------------
     # 2) DATA AND PARAMETERS - user editable
     # ---------------------------------------------------------------
 
+    strict_switch = st.checkbox("Enable strict_switch (NWIS check in intermediate steps)", value=False)
     default_main = "1,3,5,9,11,13,15,16,21,23,24,25,29,31,32,33,35,37,39,41,45,47,48,52,57,65,67,68,82"
     main_str = st.text_area("Main list", default_main, height=80)
 
@@ -123,99 +179,92 @@ def main():
         major_list = Main + G + R + C_list
         counts = Counter(major_list)
         unique_sorted = sorted(counts.keys())
+        if method_selection == 'triple':
+            # 4c) Generate valid triples    
+            valid_triples = []
+            for C in unique_sorted:
+                A = C + 5  # Condition from the original code
+                if A not in counts:
+                    continue
+                for B in unique_sorted:
+                    if 5 < B < A:
+                        if is_valid_triple(A, B, C, counts, strict_switch, nwis):
+                            valid_triples.append((A, B, C))
+            
+            # 4d) Sort the triples and build a dataframe
+            triple_bins = [
+                (triple, compute_bins(triple, Main, G, R, C_list)) 
+                for triple in valid_triples
+            ]
+            triple_bins_sorted = sorted(triple_bins, key=lambda x: x[0][0])
 
-        # 4c) Generate valid triples
-        valid_triples = []
-        for C in unique_sorted:
-            A = C + 5  # Condition from the original code
-            if A not in counts:
-                continue
+            rows = []
+            for triple, bins_count in triple_bins_sorted:
+                A, B, C_ = triple
+                # Row: [B, C, A] + [Main_count, G_count, R_count, C_count]
+                rows.append([B, C_, A] + bins_count)
+
+            columns = ['B', 'C', 'SUM', 'Main_count', 'G_count', 'R_count', 'C_count']
+            df = pd.DataFrame(rows, columns=columns)
+
+            # Keep only rows that used exactly 3 items
+            df = df[df[['Main_count', 'G_count', 'R_count', 'C_count']].sum(axis=1) == 3]
+            
+            st.success("Combinations generated!")
+            st.write(f"Number of valid rows: {len(df)}")
+            st.dataframe(df)  # Show a sample
+            
+        else:
+            # 4c) Generate valid triples
+            valid_doubles = []
             for B in unique_sorted:
-                if 5 < B < A:
-                    if is_valid_triple(A, B, C, counts, strict_switch, nwis):
-                        valid_triples.append((A, B, C))
+                A = B + 4  # Condition from the original code
+                if A not in counts:
+                    continue
+                if B > 1:
+                    if is_valid_double(A, B, counts, strict_switch, nwis):
+                        valid_doubles.append((A, B))                        
 
-        # 4d) Sort the triples and build a dataframe
-        triple_bins = [
-            (triple, compute_bins(triple, Main, G, R, C_list)) 
-            for triple in valid_triples
-        ]
-        triple_bins_sorted = sorted(triple_bins, key=lambda x: x[0][0])
+        
+            double_bins = [
+                (double, compute_bins(double, Main, G, R, C_list)) 
+                for double in valid_doubles
+            ]
+            double_bins_sorted = sorted(double_bins, key=lambda x: x[0][0])
 
-        rows = []
-        for triple, bins_count in triple_bins_sorted:
-            A, B, C_ = triple
-            # Row: [B, C, A] + [Main_count, G_count, R_count, C_count]
-            rows.append([B, C_, A] + bins_count)
+            rows = []
+            for double, bins_count in double_bins_sorted:
+                A, B = double
+                # Row: [B, C, A] + [Main_count, G_count, R_count, C_count]
+                rows.append([B, '', A] + bins_count)
 
-        columns = ['B', 'C', 'SUM', 'Main_count', 'G_count', 'R_count', 'C_count']
-        df = pd.DataFrame(rows, columns=columns)
+            columns = ['B', '', 'SUM', 'Main_count', 'G_count', 'R_count', 'C_count']
+            df = pd.DataFrame(rows, columns=columns)
+            # Keep only rows that used exactly 3 items
+            df = df[df[['Main_count', 'G_count', 'R_count', 'C_count']].sum(axis=1) == 2]
+            
 
-        # Keep only rows that used exactly 3 items
-        df = df[df[['Main_count', 'G_count', 'R_count', 'C_count']].sum(axis=1) == 3]
 
-        st.success("Combinations generated!")
-        st.write(f"Number of valid rows: {len(df)}")
-        st.dataframe(df.head(20))  # Show a sample
+            st.success("Combinations generated Double!")
+            st.write(f"Number of valid rows: {len(df)}")
+            st.dataframe(df)  # Show a sample
 
-        # ---------------------------------------------------------------
-        # 5) SAVE FIRST FILE: valid_combinations_final.xlsx (in memory)
-        # ---------------------------------------------------------------
+            # ---------------------------------------------------------------
+            # 5) SAVE FIRST FILE: valid_combinations_final.xlsx (in memory)
+            # ---------------------------------------------------------------
         if save_valid:
             valid_buffer = BytesIO()
             # Adjust file name for strict if needed
             valid_filename = "valid_combinations_final.xlsx"
             if strict_switch:
-                valid_filename = "valid_combinations_final_strict.xlsx"
+                valid_filename = "valid_combinations_strict.xlsx"      
+            valid_filename = f"{method_selection}_{valid_filename}"      
             df.to_excel(valid_buffer, index=False)
             valid_buffer.seek(0)
             st.download_button(
                 label=f"Download {valid_filename}",
                 data=valid_buffer,
                 file_name=valid_filename,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-        # ---------------------------------------------------------------
-        # 6) SAVE SECOND FILE: visualized_no_color.xlsx (in memory)
-        # ---------------------------------------------------------------
-        # Build the "formatted_df" that has the 3-rows-per-triple style
-        formatted_data = []
-        for _, row in df.iterrows():
-            B_val, C_val, SUM_val = row['B'], row['C'], row['SUM']
-            # 1) top row
-            formatted_data.append(['', '', B_val, C_val, '', '', 'Main', 'G', 'R', 'C'])
-            # 2) second row
-            triple_str = f"({B_val}, {C_val}, {SUM_val})"
-            row_2 = [
-                triple_str,
-                5,
-                B_val - 5,                # A - 5
-                C_val - (B_val - 5),      # B - (A - 5)
-                SUM_val,
-                '',
-                row['Main_count'],
-                row['G_count'],
-                row['R_count'],
-                row['C_count']
-            ]
-            formatted_data.append(row_2)
-            # 3) blank row
-            formatted_data.append(['', '', '', '', '', '', '', '', '', ''])
-
-        formatted_df = pd.DataFrame(formatted_data)
-
-        if save_no_color:
-            no_color_buffer = BytesIO()
-            no_color_filename = "visualized_no_color.xlsx"
-            if strict_switch:
-                no_color_filename = "visualized_no_color_strict.xlsx"
-            formatted_df.to_excel(no_color_buffer, index=False, header=False)
-            no_color_buffer.seek(0)
-            st.download_button(
-                label=f"Download {no_color_filename}",
-                data=no_color_buffer,
-                file_name=no_color_filename,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
@@ -238,50 +287,92 @@ def main():
             # We want to replicate the same 3-row block structure
             idx = 0  # to iterate over df rows in groups of 1 (each row = one triple in df)
             row_idx = 1
-            while idx < len(df):
-                B_val = df.iloc[idx]['B']
-                C_val = df.iloc[idx]['C']
-                SUM_val = df.iloc[idx]['SUM']
+            if method_selection == 'triple':
+                while idx < len(df):
+                    B_val = df.iloc[idx]['B']
+                    C_val = df.iloc[idx]['C']
+                    SUM_val = df.iloc[idx]['SUM']
 
-                # The top row
-                ws.cell(row=row_idx, column=1, value="")
-                ws.cell(row=row_idx, column=2, value="")
-                ws.cell(row=row_idx, column=3, value=B_val).fill = green_fill
-                ws.cell(row=row_idx, column=4, value=C_val).fill = blue_fill
-                ws.cell(row=row_idx, column=5, value="")
-                ws.cell(row=row_idx, column=6, value="")
-                ws.cell(row=row_idx, column=7, value="Main")
-                ws.cell(row=row_idx, column=8, value="G")
-                ws.cell(row=row_idx, column=9, value="R")
-                ws.cell(row=row_idx, column=10, value="C")
+                    # The top row
+                    ws.cell(row=row_idx, column=1, value="")
+                    ws.cell(row=row_idx, column=2, value="")
+                    ws.cell(row=row_idx, column=3, value=B_val).fill = green_fill
+                    ws.cell(row=row_idx, column=4, value=C_val).fill = blue_fill
+                    ws.cell(row=row_idx, column=5, value="")
+                    ws.cell(row=row_idx, column=6, value="")
+                    ws.cell(row=row_idx, column=7, value="Main")
+                    ws.cell(row=row_idx, column=8, value="G")
+                    ws.cell(row=row_idx, column=9, value="R")
+                    ws.cell(row=row_idx, column=10, value="C")
 
-                # The second row
-                triple_str = f"({B_val}, {C_val}, {SUM_val})"
-                row_2 = row_idx + 1
-                ws.cell(row=row_2, column=1, value=triple_str)
-                ws.cell(row=row_2, column=2, value=5)
-                ws.cell(row=row_2, column=3, value=(B_val - 5))
-                ws.cell(row=row_2, column=4, value=(C_val - (B_val - 5)))
-                ws.cell(row=row_2, column=5, value=SUM_val).fill = yellow_fill
+                    # The second row
+                    triple_str = f"({B_val}, {C_val}, {SUM_val})"
+                    row_2 = row_idx + 1
+                    ws.cell(row=row_2, column=1, value=triple_str)
+                    ws.cell(row=row_2, column=2, value=5)
+                    ws.cell(row=row_2, column=3, value=(B_val - 5))
+                    ws.cell(row=row_2, column=4, value=(C_val - (B_val - 5)))
+                    ws.cell(row=row_2, column=5, value=SUM_val).fill = yellow_fill
 
-                # We also want to show counts in columns 7..10:
-                ws.cell(row=row_2, column=7, value=df.iloc[idx]['Main_count'])
-                ws.cell(row=row_2, column=8, value=df.iloc[idx]['G_count'])
-                ws.cell(row=row_2, column=9, value=df.iloc[idx]['R_count'])
-                ws.cell(row=row_2, column=10, value=df.iloc[idx]['C_count'])
+                    # We also want to show counts in columns 7..10:
+                    ws.cell(row=row_2, column=7, value=df.iloc[idx]['Main_count'])
+                    ws.cell(row=row_2, column=8, value=df.iloc[idx]['G_count'])
+                    ws.cell(row=row_2, column=9, value=df.iloc[idx]['R_count'])
+                    ws.cell(row=row_2, column=10, value=df.iloc[idx]['C_count'])
 
-                # The third row is blank
-                for c in range(1, 11):
-                    ws.cell(row=row_idx+2, column=c, value="")
+                    # The third row is blank
+                    for c in range(1, 11):
+                        ws.cell(row=row_idx+2, column=c, value="")
 
-                # Move to the next triple
-                row_idx += 3
-                idx += 1
+                    # Move to the next triple
+                    row_idx += 3
+                    idx += 1
+            else:
+                while idx < len(df):
+                    B_val = df.iloc[idx]['B']
+                    SUM_val = df.iloc[idx]['SUM']
+
+                    # The top row
+                    ws.cell(row=row_idx, column=1, value="")
+                    ws.cell(row=row_idx, column=2, value="")
+                    ws.cell(row=row_idx, column=3, value=B_val).fill = green_fill
+                    ws.cell(row=row_idx, column=4, value="")
+                    ws.cell(row=row_idx, column=5, value="")
+                    ws.cell(row=row_idx, column=6, value="")
+                    ws.cell(row=row_idx, column=7, value="Main")
+                    ws.cell(row=row_idx, column=8, value="G")
+                    ws.cell(row=row_idx, column=9, value="R")
+                    ws.cell(row=row_idx, column=10, value="C")
+
+                    # The second row
+                    triple_str = f"({B_val}, {SUM_val})"
+                    row_2 = row_idx + 1
+                    ws.cell(row=row_2, column=1, value=triple_str)
+                    ws.cell(row=row_2, column=2, value=5)
+                    ws.cell(row=row_2, column=3, value=(B_val - 1))
+                    # ws.cell(row=row_2, column=4, value=(C_val - (B_val - 5)))
+                    ws.cell(row=row_2, column=4, value="")
+                    ws.cell(row=row_2, column=5, value=SUM_val).fill = yellow_fill
+
+                    # We also want to show counts in columns 7..10:
+                    ws.cell(row=row_2, column=7, value=df.iloc[idx]['Main_count'])
+                    ws.cell(row=row_2, column=8, value=df.iloc[idx]['G_count'])
+                    ws.cell(row=row_2, column=9, value=df.iloc[idx]['R_count'])
+                    ws.cell(row=row_2, column=10, value=df.iloc[idx]['C_count'])
+
+                    # The third row is blank
+                    for c in range(1, 11):
+                        ws.cell(row=row_idx+2, column=c, value="")
+
+                    # Move to the next triple
+                    row_idx += 3
+                    idx += 1
 
             color_buffer = BytesIO()
             color_filename = "visualized_with_color.xlsx"
             if strict_switch:
                 color_filename = "visualized_with_color_strict.xlsx"
+            color_filename = f"{method_selection}_{color_filename}"
             wb.save(color_buffer)
             color_buffer.seek(0)
 
@@ -292,7 +383,7 @@ def main():
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
-        st.success("All done!")
+        # st.success("All done!")
 
 if __name__ == "__main__":
     main()
