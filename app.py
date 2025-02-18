@@ -145,24 +145,36 @@ def main():
         </ul>
         """
 
-    # Custom CSS for grey rectangle with rounded edges
+    # Detect Streamlit theme mode
+    theme_mode = st.get_option("theme.base")  # 'light' or 'dark'
+
+    # Set styles dynamically
+    if theme_mode == "dark":
+        bg_color = "#2b2b2b"  # Dark grey for dark mode
+        text_color = "#ddd"  # Light text for dark mode
+        border_color = "#444"  # Slightly lighter border
+    else:
+        bg_color = "#f0f0f0"  # Light grey for light mode
+        text_color = "#333"  # Dark text for light mode
+        border_color = "#d3d3d3"  # Light border
+
+    # Styled HTML with dynamic theme colors
     st.markdown(
         f"""
         <div style="
-            background-color: #f0f0f0; 
+            background-color: {bg_color}; 
+            color: {text_color};
             padding: 15px; 
             border-radius: 10px; 
-            border: 1px solid #d3d3d3;
+            border: 1px solid {border_color};
             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
             font-size: 16px;">
-            <h4 style="color: #333;">You selected {method_selections}</h4>
+            <h4 style="color: {text_color};">You selected {method_selections}</h4>
             {description}
         </div>
         """,
         unsafe_allow_html=True
     )
-
-
 
 
     st.markdown("---")
