@@ -177,7 +177,7 @@ def main():
 
     # Toggle buttons for user selection
     toggle_B_C = st.toggle("Strict B and C", value=False)
-    strict_switch = st.toggle("Strict Intermediate Values", value=False)
+    strict_switch = st.toggle("Strict Intermediate Values", value=True)
     toggle_sum = st.toggle("Strict Sum", value=False)    
 
     st.markdown("---")
