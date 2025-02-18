@@ -64,7 +64,7 @@ def compute_bins(triple, Main, G, R, C_list):
     Calculate how many numbers in the triple come from
     each bin: [Main, G, R, C_list].
     """
-    bins = [0, 0, 0, 0]  # [Main_count, G_count, R_count, C_count]
+    bins = [0, 0, 0, 0]  # [M_count, G_count, R_count, C_count]
 
     # Copies so original data is not modified
     main_copy = Main.copy()
@@ -104,35 +104,81 @@ def main():
     # st.write(f"You selected: {method_selection}")
 
 
+    # method_selection = ''
+    # if method_selections == "Combination 1: Triples":
+    #     # st.write("You selected Combination 1: Triples")
+    #     st.write("##### You selected Combination 1: Triples")
+    #     st.write("""
+    #     Three numbers (B,C,SUM) selected from Main,G,R,C with conditions
+    #     - SUM = C + 5
+    #     - Intermediate Values of B and C are greater than 0
+    #     """)
+
+    #     method_selection = 'triple'
+
+    # elif method_selections == "Combination 2: Doubles":
+    #     st.write("##### You selected Combination 2: Doubles")
+    #     st.write("""
+    #     Two numbers (B,SUM) selected from Main,G,R,C with conditions
+    #     - SUM = B + 4
+    #     - Intermediate Value of B is greater than 0
+    #     """)
+    #     method_selection = 'double'
+
     method_selection = ''
     if method_selections == "Combination 1: Triples":
-        # st.write("You selected Combination 1: Triples")
-        st.write("##### You selected Combination 1: Triples")
-        st.write("""
-        Three numbers (B,C,SUM) selected from Main,G,R,C with conditions
-        - SUM = C + 5
-        - Intermediate Values of B and C are greater than 0
-        """)
-
         method_selection = 'triple'
-
+        description = """
+        <b>Three numbers (B, C, SUM) selected from Main, G, R, C with conditions:</b>
+        <ul>
+            <li>SUM = C + 5</li>
+            <li>Intermediate Values of B and C are greater than 0</li>
+        </ul>
+        """
     elif method_selections == "Combination 2: Doubles":
-        st.write("##### You selected Combination 2: Doubles")
-        st.write("""
-        Two numbers (B,SUM) selected from Main,G,R,C with conditions
-        - SUM = B + 4
-        - Intermediate Value of B is greater than 0
-        """)
         method_selection = 'double'
+        description = """
+        <b>Two numbers (B, SUM) selected from Main, G, R, C with conditions:</b>
+        <ul>
+            <li>SUM = B + 4</li>
+            <li>Intermediate Value of B is greater than 0</li>
+        </ul>
+        """
+
+    # Custom CSS for grey rectangle with rounded edges
+    st.markdown(
+        f"""
+        <div style="
+            background-color: #f0f0f0; 
+            padding: 15px; 
+            border-radius: 10px; 
+            border: 1px solid #d3d3d3;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            font-size: 16px;">
+            <h4 style="color: #333;">You selected {method_selections}</h4>
+            {description}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 
 
     st.markdown("---")
-    st.subheader("Select Files to save below:")
-    save_valid = st.checkbox("Save valid combinations (valid_combinations_final.xlsx)", value=True)
+    # st.subheader("Select Files to save below:")
+    st.subheader("Not Wanted in List:")
+    # save_valid = st.checkbox("Save valid combinations (valid_combinations_final.xlsx)", value=True)
+    save_valid = True
     # save_no_color = st.checkbox("Save no-color version (visualized_no_color.xlsx)", value=True)
     save_no_color = False
-    save_with_color = st.checkbox("Save color version (visualized_with_color.xlsx)", value=True)
+    # save_with_color = st.checkbox("Save color version (visualized_with_color.xlsx)", value=True)
+    save_with_color = True
+
+    # Toggle buttons for user selection
+    toggle_B_C = st.toggle("Strict B and C", value=False)
+    strict_switch = st.toggle("Strict Intermediate Values", value=False)
+    toggle_sum = st.toggle("Strict Sum", value=False)    
 
     st.markdown("---")
     st.subheader("Input Configuration")
@@ -141,7 +187,7 @@ def main():
     # 2) DATA AND PARAMETERS - user editable
     # ---------------------------------------------------------------
 
-    strict_switch = st.checkbox("Enable strict_switch (NWIS check in intermediate steps)", value=False)
+    # strict_switch = st.checkbox("Enable strict_switch (NWIS check in intermediate steps)", value=False)
     default_main = "1,3,5,9,11,13,15,16,21,23,24,25,29,31,32,33,35,37,39,41,45,47,48,52,57,65,67,68,82"
     main_str = st.text_area("Main list", default_main, height=80)
 
@@ -155,7 +201,7 @@ def main():
     c_list_str = st.text_area("C_list", default_c_list, height=80)
 
     default_nwim = "2,4,9,10,12,14,19,20,26,27,28,34,36,42,43,44,46,49,50,53,54,56,58,59,60,62,64,66,69,70,72,73,74,76,78,79,80,21,23,26,28,29,33,39,22,4,10,12,22,28,34,4,9,10,14,19,20,28,34,44,9,10,14,19,20,22,28,30,34,40,44,50,53,54,56,59,60,70,80"
-    nwim_str = st.text_area("NWIM list (not_wanted_in_sum)", default_nwim, height=100)
+    nwim_str = st.text_area("Not Wanted List", default_nwim, height=100)
     if st.button("Run Combinations Logic"):
         # Parse user inputs
         not_wanted_in_sum = parse_list(nwim_str)
@@ -170,10 +216,10 @@ def main():
         # 4) MAIN LOGIC
         # ---------------------------------------------------------------
         # 4a) Filter out NWIS items
-        Main   = remove_nwis(Main, nwis)
-        G      = remove_nwis(G, nwis)
-        R      = remove_nwis(R, nwis)
-        C_list = remove_nwis(C_list, nwis)
+        # Main   = remove_nwis(Main, nwis)
+        # G      = remove_nwis(G, nwis)
+        # R      = remove_nwis(R, nwis)
+        # C_list = remove_nwis(C_list, nwis)
 
         # 4b) Create a major list and get counts
         major_list = Main + G + R + C_list
@@ -183,10 +229,16 @@ def main():
             # 4c) Generate valid triples    
             valid_triples = []
             for C in unique_sorted:
+                if toggle_B_C and C in nwis:
+                    continue
                 A = C + 5  # Condition from the original code
                 if A not in counts:
                     continue
+                if toggle_sum and A in nwis:
+                    continue
                 for B in unique_sorted:
+                    if toggle_B_C and B in nwis:
+                        continue                        
                     if 5 < B < A:
                         if is_valid_triple(A, B, C, counts, strict_switch, nwis):
                             valid_triples.append((A, B, C))
@@ -201,26 +253,61 @@ def main():
             rows = []
             for triple, bins_count in triple_bins_sorted:
                 A, B, C_ = triple
-                # Row: [B, C, A] + [Main_count, G_count, R_count, C_count]
+                # Row: [B, C, A] + [M_count, G_count, R_count, C_count]
                 rows.append([B, C_, A] + bins_count)
 
-            columns = ['B', 'C', 'SUM', 'Main_count', 'G_count', 'R_count', 'C_count']
+            columns = ['B', 'C', 'SUM', 'M_count', 'G_count', 'R_count', 'C_count']
             df = pd.DataFrame(rows, columns=columns)
 
             # Keep only rows that used exactly 3 items
-            df = df[df[['Main_count', 'G_count', 'R_count', 'C_count']].sum(axis=1) == 3]
+            df = df[df[['M_count', 'G_count', 'R_count', 'C_count']].sum(axis=1) == 3]
+            
+            # With intermediate values
+            rows = []
+            for triple, bins_count in triple_bins_sorted:
+                A, B, C_ = triple
+
+                # Row: [B, C, A] + [M_count, G_count, R_count, C_count]
+                rows.append([B, C_, A]+[B-5, C_-B+5] + bins_count)
+
+            columns_triple = ['B', 'C', 'SUM','Inter 1','Inter 2', 'M_count', 'G_count', 'R_count', 'C_count']
+            df_with_inter = pd.DataFrame(rows, columns=columns_triple)
+
+            # Keep only rows that used exactly 3 items
+            df_with_inter = df_with_inter[df_with_inter[['M_count', 'G_count', 'R_count', 'C_count']].sum(axis=1) == 3]
             
             st.success("Combinations generated!")
-            st.write(f"Number of valid rows: {len(df)}")
-            st.dataframe(df)  # Show a sample
+
+            st.write(f"Number of valid rows: {len(df_with_inter)}")
+            df_with_inter.index = range(1, len(df_with_inter) + 1)
+            st.dataframe(df_with_inter)  # Show a sample
+
+            # Creating the new DataFrame with empty spaces
+            new_rows = []
+            for _, row in df_with_inter.iterrows():
+                new_rows.append(['', row['B'], row['C'], '', '', 'Main', 'G', 'R', 'C'])
+                new_rows.append([5, row['Inter 1'], row['Inter 2'], row['SUM'], '', row['M_count'], row['G_count'], row['R_count'], row['C_count']])
+                new_rows.append([''] * 9)  # Empty row
+
+            # Creating the new DataFrame
+            columns_triple = ['-', 'B', 'C','SUM','--', 'M_count', 'G_count', 'R_count', 'C_count']
+            df_formatted = pd.DataFrame(new_rows, columns=columns_triple)
+            df_formatted.index = range(1, len(df_formatted) + 1)
+            st.write("Combinations Visualized:")
+            st.dataframe(df_formatted)  # Show a sample
+
             
         else:
             # 4c) Generate valid triples
             valid_doubles = []
             for B in unique_sorted:
+                if toggle_B_C and B in nwis:
+                    continue                
                 A = B + 4  # Condition from the original code
                 if A not in counts:
                     continue
+                if toggle_sum and A in nwis:
+                    continue                
                 if B > 1:
                     if is_valid_double(A, B, counts, strict_switch, nwis):
                         valid_doubles.append((A, B))                        
@@ -235,19 +322,45 @@ def main():
             rows = []
             for double, bins_count in double_bins_sorted:
                 A, B = double
-                # Row: [B, C, A] + [Main_count, G_count, R_count, C_count]
+                # Row: [B, C, A] + [M_count, G_count, R_count, C_count]
                 rows.append([B, '', A] + bins_count)
 
-            columns = ['B', '', 'SUM', 'Main_count', 'G_count', 'R_count', 'C_count']
+            columns = ['B', '', 'SUM', 'M_count', 'G_count', 'R_count', 'C_count']
             df = pd.DataFrame(rows, columns=columns)
             # Keep only rows that used exactly 3 items
-            df = df[df[['Main_count', 'G_count', 'R_count', 'C_count']].sum(axis=1) == 2]
+            df = df[df[['M_count', 'G_count', 'R_count', 'C_count']].sum(axis=1) == 2]
+            
+            rows = []
+            for double, bins_count in double_bins_sorted:
+                A, B = double
+                # Row: [B, C, A] + [M_count, G_count, R_count, C_count]
+                rows.append([B, '', A,B-1] + bins_count)
+
+            columns = ['B', '', 'SUM','Inter 1', 'M_count', 'G_count', 'R_count', 'C_count']
+            df_with_inter = pd.DataFrame(rows, columns=columns)
+            # Keep only rows that used exactly 3 items
+            df_with_inter = df_with_inter[df_with_inter[['M_count', 'G_count', 'R_count', 'C_count']].sum(axis=1) == 2]
             
 
-
             st.success("Combinations generated Double!")
-            st.write(f"Number of valid rows: {len(df)}")
-            st.dataframe(df)  # Show a sample
+            st.write(f"Number of valid rows: {len(df_with_inter)}")
+            df_with_inter.index = range(1, len(df_with_inter) + 1)
+            st.dataframe(df_with_inter)  # Show a sample
+
+            # Creating the new DataFrame with empty spaces
+            new_rows = []
+            for _, row in df_with_inter.iterrows():
+                new_rows.append(['', row['B'], '', '', '', 'Main', 'G', 'R', 'C'])
+                new_rows.append([5, row['Inter 1'], '', row['SUM'], '', row['M_count'], row['G_count'], row['R_count'], row['C_count']])
+                new_rows.append([''] * 9)  # Empty row
+
+            # Creating the new DataFrame
+            columns_triple = ['-', 'B', '','SUM','--', 'M_count', 'G_count', 'R_count', 'C_count']
+            df_formatted = pd.DataFrame(new_rows, columns=columns_triple)
+            df_formatted.index = range(1, len(df_formatted) + 1)
+            st.write("Combinations Visualized:")
+            st.dataframe(df_formatted)  # Show a sample
+
 
             # ---------------------------------------------------------------
             # 5) SAVE FIRST FILE: valid_combinations_final.xlsx (in memory)
@@ -255,11 +368,11 @@ def main():
         if save_valid:
             valid_buffer = BytesIO()
             # Adjust file name for strict if needed
-            valid_filename = "valid_combinations_final.xlsx"
+            valid_filename = "valid_combinations.xlsx"
             if strict_switch:
                 valid_filename = "valid_combinations_strict.xlsx"      
             valid_filename = f"{method_selection}_{valid_filename}"      
-            df.to_excel(valid_buffer, index=False)
+            df_with_inter.to_excel(valid_buffer, index=False)
             valid_buffer.seek(0)
             st.download_button(
                 label=f"Download {valid_filename}",
@@ -315,7 +428,7 @@ def main():
                     ws.cell(row=row_2, column=5, value=SUM_val).fill = yellow_fill
 
                     # We also want to show counts in columns 7..10:
-                    ws.cell(row=row_2, column=7, value=df.iloc[idx]['Main_count'])
+                    ws.cell(row=row_2, column=7, value=df.iloc[idx]['M_count'])
                     ws.cell(row=row_2, column=8, value=df.iloc[idx]['G_count'])
                     ws.cell(row=row_2, column=9, value=df.iloc[idx]['R_count'])
                     ws.cell(row=row_2, column=10, value=df.iloc[idx]['C_count'])
@@ -355,7 +468,7 @@ def main():
                     ws.cell(row=row_2, column=5, value=SUM_val).fill = yellow_fill
 
                     # We also want to show counts in columns 7..10:
-                    ws.cell(row=row_2, column=7, value=df.iloc[idx]['Main_count'])
+                    ws.cell(row=row_2, column=7, value=df.iloc[idx]['M_count'])
                     ws.cell(row=row_2, column=8, value=df.iloc[idx]['G_count'])
                     ws.cell(row=row_2, column=9, value=df.iloc[idx]['R_count'])
                     ws.cell(row=row_2, column=10, value=df.iloc[idx]['C_count'])
